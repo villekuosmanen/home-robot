@@ -8,8 +8,7 @@ dependencies:
   - python==3.9.*
   - cmake
   - pybind11
-  - pytorch=1.13.1
-  - pytorch-cuda=11.7
+  - pytorch=2.1.0=py3.9_cuda12.1*
   - pytorch3d
   - torchvision
   - torchaudio

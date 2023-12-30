@@ -2,9 +2,9 @@ NO_GPU: 0                 # 1: ignore IDs above and run on CPU, 0: run on GPUs w
 NUM_ENVIRONMENTS: 1       # number of environments (per agent process)
 DUMP_LOCATION: datadump   # path to dump models and log
 EXP_NAME: eval_hssd       # experiment name
-VISUALIZE: 0              # 1: render observation and predicted semantic map, 0: no visualization
-PRINT_IMAGES: 1           # 1: save visualization as images, 0: no image saving
-GROUND_TRUTH_SEMANTICS: 0 # 1: use ground-truth semantics (for debugging / ablations)
+VISUALIZE: 1              # 1: render observation and predicted semantic map, 0: no visualization
+PRINT_IMAGES: 0           # 1: save visualization as images, 0: no image saving
+GROUND_TRUTH_SEMANTICS: 1 # 1: use ground-truth semantics (for debugging / ablations)
 seed: 0                   # seed
 SHOW_RL_OBS: False         # whether to show the observations passed to RL policices, for debugging
 
@@ -30,7 +30,3 @@ EVAL_VECTORIZED:
   record_videos: 0          # 1: record videos from printed images, 0: don't
   record_planner_videos: 0  # 1: record planner videos (if record videos), 0: don't
   metrics_save_freq: 5      # save metrics after every n episodes
-
-start_recep: "chair"
-pick_object: "bowl"
-goal_recep: "table"
