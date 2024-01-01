@@ -131,11 +131,15 @@ class OpenVocabManipAgent(ObjectNavAgent):
         """Get inputs for visual skill."""
         use_detic_viz = self.config.ENVIRONMENT.use_detic_viz
 
-        if self.config.GROUND_TRUTH_SEMANTICS == 1 or use_detic_viz:
+        if self.config.GROUND_TRUTH_SEMANTICS == 1:
             semantic_category_mapping = None  # Visualizer handles mapping
-        elif self.semantic_sensor.current_vocabulary_id == SemanticVocab.SIMPLE:
+        elif (
+            self.semantic_sensor.current_vocabulary_id == SemanticVocab.SIMPLE
+            and not use_detic_viz
+        ):
             semantic_category_mapping = RearrangeBasicCategories()
         else:
+            # this includes detic - we want to use current vocabulary as managed separately
             semantic_category_mapping = self.semantic_sensor.current_vocabulary
 
         if use_detic_viz:
