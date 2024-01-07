@@ -135,6 +135,7 @@ class OpenVocabManipAgent(ObjectNavAgent):
 
         if observable:
             self.observability_manager = ObservabilityManager()
+            self.observability_manager.run_in_background()
 
     def _get_info(self, obs: Observations) -> Dict[str, torch.Tensor]:
         """Get inputs for visual skill."""
