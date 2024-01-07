@@ -13,6 +13,7 @@ from trimesh import transformations as tra
 from home_robot.agent.objectnav_agent.objectnav_agent import ObjectNavAgent
 from home_robot.core.interfaces import DiscreteNavigationAction, Observations
 from home_robot.manipulation import HeuristicPickPolicy, HeuristicPlacePolicy
+from home_robot.observability.manager import ObservabilityManager
 from home_robot.perception.constants import RearrangeBasicCategories
 from home_robot.perception.wrapper import (
     OvmmPerception,
@@ -48,7 +49,7 @@ def get_skill_as_one_hot_dict(curr_skill: Skill):
 class OpenVocabManipAgent(ObjectNavAgent):
     """Simple object nav agent based on a 2D semantic map."""
 
-    def __init__(self, config, device_id: int = 0):
+    def __init__(self, config, device_id: int = 0, observable: bool = False):
         super().__init__(config, device_id=device_id)
         self.states = None
         self.place_start_step = None
@@ -131,6 +132,9 @@ class OpenVocabManipAgent(ObjectNavAgent):
             )
         self._fall_wait_steps = getattr(config.AGENT, "fall_wait_steps", 0)
         self.config = config
+
+        if observable:
+            self.observability_manager = ObservabilityManager()
 
     def _get_info(self, obs: Observations) -> Dict[str, torch.Tensor]:
         """Get inputs for visual skill."""
@@ -576,30 +580,44 @@ class OpenVocabManipAgent(ObjectNavAgent):
             roll, pitch, yaw = tra.euler_from_matrix(obs.camera_pose[:3, :3], "rzyx")
             print(f"Roll: {roll}, Pitch: {pitch}, Yaw: {yaw}")
         action = None
+
+        action_name = None
         while action is None:
             if self.states[0] == Skill.NAV_TO_OBJ:
                 print(f"step: {self.timesteps[0]} -- nav to obj")
+                action_name = "nav to obj"
                 action, info, new_state = self._nav_to_obj(obs, info)
             elif self.states[0] == Skill.GAZE_AT_OBJ:
+                action_name = "gaze at obj"
                 print(f"step: {self.timesteps[0]} -- gaze at obj")
                 action, info, new_state = self._gaze_at_obj(obs, info)
             elif self.states[0] == Skill.PICK:
+                action_name = "pick"
                 print(f"step: {self.timesteps[0]} -- pick")
                 action, info, new_state = self._pick(obs, info)
             elif self.states[0] == Skill.NAV_TO_REC:
+                action_name = "nav to rec"
                 print(f"step: {self.timesteps[0]} -- nav to rec")
                 action, info, new_state = self._nav_to_rec(obs, info)
             elif self.states[0] == Skill.GAZE_AT_REC:
+                action_name = "gaze at rec"
                 print(f"step: {self.timesteps[0]} -- gaze at rec")
                 action, info, new_state = self._gaze_at_rec(obs, info)
             elif self.states[0] == Skill.PLACE:
+                action_name = "place"
                 print(f"step: {self.timesteps[0]} -- place")
                 action, info, new_state = self._place(obs, info)
             elif self.states[0] == Skill.FALL_WAIT:
+                action_name = "fall wait"
                 print(f"step: {self.timesteps[0]} -- fall wait")
                 action, info, new_state = self._fall_wait(obs, info)
             else:
                 raise ValueError
+
+            if self.observability_manager is not None:
+                self.observability_manager.process_action(
+                    action_name, self.timesteps[0]
+                )
 
             # Since heuristic nav is not properly vectorized, this agent currently only supports 1 env
             # _switch_to_next_skill is thus invoked with e=0
@@ -616,4 +634,5 @@ class OpenVocabManipAgent(ObjectNavAgent):
             print(
                 f'Executing skill {info["curr_skill"]} at timestep {self.timesteps[0]}'
             )
+
         return action, info, obs

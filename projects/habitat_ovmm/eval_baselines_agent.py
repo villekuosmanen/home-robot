@@ -76,6 +76,11 @@ if __name__ == "__main__":
         nargs=argparse.REMAINDER,
         help="Modify config options from command line",
     )
+    parser.add_argument(
+        "--observable",
+        action=argparse.BooleanOptionalAction,
+        help="enable observability over NATS message bus",
+    )
     args = parser.parse_args()
 
     # get habitat config
@@ -105,7 +110,9 @@ if __name__ == "__main__":
     elif args.agent_type == "explore":
         agent = OVMMExplorationAgent(agent_config, device_id=device_id, args=args)
     else:
-        agent = OpenVocabManipAgent(agent_config, device_id=device_id)
+        agent = OpenVocabManipAgent(
+            agent_config, device_id=device_id, observable=args.observable
+        )
 
     # create evaluator
     evaluator = OVMMEvaluator(env_config, data_dir=args.data_dir)
