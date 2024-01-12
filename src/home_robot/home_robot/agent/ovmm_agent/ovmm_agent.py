@@ -619,6 +619,9 @@ class OpenVocabManipAgent(ObjectNavAgent):
                 self.observability_manager.process_action(
                     action_name, self.timesteps[0]
                 )
+                self.observability_manager.process_image_frame(
+                    obs.task_observations["semantic_frame"]
+                )
 
             # Since heuristic nav is not properly vectorized, this agent currently only supports 1 env
             # _switch_to_next_skill is thus invoked with e=0
