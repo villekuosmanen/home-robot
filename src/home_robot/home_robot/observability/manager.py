@@ -5,6 +5,7 @@ import time
 
 import nats
 from proto.action_pb2 import Action
+from proto.imageframe_pb2 import ImageFrame
 
 
 class ObservabilityManager:
@@ -29,8 +30,11 @@ class ObservabilityManager:
             closed_cb=self.closed_cb,
         )
         while True:
-            action = await asyncio.to_thread(self.queue.get)
-            await nc.publish("obs.action", action.SerializeToString())
+            message = await asyncio.to_thread(self.queue.get)
+            if isinstance(message, Action):
+                await nc.publish("obs.action", message.SerializeToString())
+            elif isinstance(message, ImageFrame):
+                await nc.publish("obs.image_frame", message.SerializeToString())
 
     async def disconnected_cb(self):
         print("Got disconnected!")
@@ -51,3 +55,16 @@ class ObservabilityManager:
 
         # place in queue, to be published asynchronously
         self.queue.put(action)
+
+    def process_image_frame(self, image_frame):
+        if image_frame is None:
+            # None, so skip processing image frame
+            return
+
+        height, width, _ = image_frame.shape
+        image_bytes = image_frame.tobytes()
+
+        image_data_proto = ImageFrame(width=width, height=height, data=image_bytes)
+
+        # place in queue, to be published asynchronously
+        self.queue.put(image_data_proto)
