@@ -67,6 +67,9 @@ class OpenVocabManipAgent(ObjectNavAgent):
         self.place_policy = None
         self.semantic_sensor = None
 
+        if config.AGENT.VISION.bayesian:
+            self.store_all_categories_in_map = True
+
         if config.GROUND_TRUTH_SEMANTICS == 1 and self.store_all_categories_in_map:
             # currently we get ground truth semantics of only the target object category and all scene receptacles from the simulator
             raise NotImplementedError
@@ -79,6 +82,7 @@ class OpenVocabManipAgent(ObjectNavAgent):
                 device_id,
                 self.verbose,
                 confidence_threshold=config.AGENT.VISION.confidence_threshold,
+                bayesian=config.AGENT.VISION.bayesian,
             )
             self.obj_name_to_id, self.rec_name_to_id = read_category_map_file(
                 config.ENVIRONMENT.category_map_file
@@ -615,7 +619,7 @@ class OpenVocabManipAgent(ObjectNavAgent):
             else:
                 raise ValueError
 
-            if self.observability_manager is not None:
+            if hasattr(self, "observability_manager"):
                 self.observability_manager.process_action(
                     action_name, self.timesteps[0]
                 )

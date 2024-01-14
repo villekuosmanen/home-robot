@@ -16,8 +16,10 @@ import torch
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
 from detectron2.engine.defaults import DefaultPredictor
+from detectron2.structures import Instances
 from detectron2.utils.visualizer import ColorMode, Visualizer
 
+from home_robot.agent.bayesian_filter.filter import BayesianFilter
 from home_robot.core.abstract_perception import PerceptionModule
 from home_robot.core.interfaces import Observations
 from home_robot.perception.detection.utils import filter_depth, overlay_masks
@@ -74,6 +76,7 @@ class DeticPerception(PerceptionModule):
         sem_gpu_id=0,
         verbose: bool = False,
         confidence_threshold: Optional[float] = None,
+        bayesian: bool = False,
     ):
         """Load trained Detic model for inference.
 
@@ -165,6 +168,9 @@ class DeticPerception(PerceptionModule):
             classifier = str(classifier)
         reset_cls_test(self.predictor.model, classifier, num_classes)
 
+        if bayesian:
+            self.bayesian_filter = BayesianFilter()
+
     def reset_vocab(self, new_vocab: List[str], vocab_type="custom"):
         """Resets the vocabulary of Detic model allowing you to change detection on
         the fly. Note that previous vocabulary is not preserved.
@@ -224,6 +230,39 @@ class DeticPerception(PerceptionModule):
         pred = self.predictor(image)
         if obs.task_observations is None:
             obs.task_observations = {}
+
+        # Apply Bayesian filtering
+        if (
+            hasattr(self, "bayesian_filter")
+            and pred["instances"].pred_classes.numel() > 0
+        ):
+            class_idcs = pred["instances"].pred_classes.cpu()
+            scores = pred["instances"].scores.cpu()
+
+            # Create a boolean mask based on the Bayesian filter
+            pass_bayesian_filter = np.array(
+                [
+                    self.bayesian_filter.observe(class_idx.item(), score.item())
+                    for class_idx, score in zip(class_idcs, scores)
+                ]
+            )
+
+            filtered_masks = pred["instances"].pred_masks[pass_bayesian_filter]
+            filtered_classes = pred["instances"].pred_classes[pass_bayesian_filter]
+            filtered_scores = pred["instances"].scores[pass_bayesian_filter]
+            filtered_boxes = pred["instances"].pred_boxes[pass_bayesian_filter]
+
+            # Create a new Instances object or modify the existing one
+            new_instances = Instances(
+                pred["instances"].image_size,
+                pred_masks=filtered_masks,
+                pred_classes=filtered_classes,
+                scores=filtered_scores,
+                pred_boxes=filtered_boxes,
+            )
+
+            # Replace the original instances with the new, filtered instances
+            pred["instances"] = new_instances
 
         if draw_instance_predictions:
             visualizer = Visualizer(

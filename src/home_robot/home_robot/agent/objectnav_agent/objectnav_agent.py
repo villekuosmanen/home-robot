@@ -119,6 +119,8 @@ class ObjectNavAgent(Agent):
             min_goal_distance_cm=min_goal_distance_cm,
             continuous_angle_tolerance=continuous_angle_tolerance,
         )
+        # TODO: the number of categories should not be hard-coded.
+        # instead we should be using a value from the vocabulary map.
         self.one_hot_encoding = torch.eye(
             config.AGENT.SEMANTIC_MAP.num_sem_categories, device=self.device
         )

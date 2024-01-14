@@ -8,6 +8,7 @@ detection_module: detic # the detector to use for perception in case ground_trut
 
 VISION:
   confidence_threshold: 0.45 # detic object detection confidence threshold
+  bayesian: False
 
 SEMANTIC_MAP:
   semantic_categories: rearrange # map semantic channel categories ("coco_indoor", "longtail_indoor", "mukul_indoor", "rearrange")
