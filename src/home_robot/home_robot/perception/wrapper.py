@@ -27,6 +27,7 @@ class OvmmPerception:
         gpu_device_id: int = 0,
         verbose: bool = False,
         confidence_threshold: float = 0.5,
+        bayesian: bool = False,
         module: str = "grounded_sam",
         module_kwargs: Dict[str, Any] = {},
     ):
@@ -49,6 +50,7 @@ class OvmmPerception:
                 sem_gpu_id=gpu_device_id,
                 verbose=verbose,
                 confidence_threshold=confidence_threshold,
+                bayesian=bayesian,
                 **module_kwargs,
             )
         elif self._detection_module == "grounded_sam":
