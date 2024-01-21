@@ -18,6 +18,7 @@ sys.path.insert(
 from MobileSAM.setup_mobile_sam import setup_model  # noqa: E402
 from segment_anything import SamPredictor  # noqa: E402
 
+from home_robot.agent.bayesian_filter.filter import BayesianFilter  # noqa: E402
 from home_robot.core.abstract_perception import PerceptionModule  # noqa: E402
 from home_robot.core.interfaces import Observations  # noqa: E402
 from home_robot.perception.detection.utils import (  # noqa: E402
@@ -50,6 +51,8 @@ class GroundedSAMPerception(PerceptionModule):
         sem_gpu_id=None,
         checkpoint_file: str = MOBILE_SAM_CHECKPOINT_PATH,
         verbose=False,
+        confidence_threshold: Optional[float] = None,
+        bayesian: bool = False,
         nms_threshold: float = NMS_THRESHOLD,
         box_threshold: float = BOX_THRESHOLD,
         text_threshold: float = None,
@@ -65,10 +68,15 @@ class GroundedSAMPerception(PerceptionModule):
             verbose: whether to print out debug information
         """
         self.nms_threshold = nms_threshold
-        self.box_threshold = box_threshold
-        self.text_threshold = (
-            text_threshold if text_threshold is not None else box_threshold
-        )
+
+        if confidence_threshold is not None:
+            self.box_threshold = confidence_threshold
+            self.text_threshold = confidence_threshold
+        else:
+            self.box_threshold = box_threshold
+            self.text_threshold = (
+                text_threshold if text_threshold is not None else box_threshold
+            )
 
         # Building GroundingDINO inference model
         self.grounding_dino_model = Model(
@@ -83,6 +91,9 @@ class GroundedSAMPerception(PerceptionModule):
         self.mobile_sam.to(device=DEVICE)
         self.custom_vocabulary = custom_vocabulary
         self.sam_predictor = SamPredictor(self.mobile_sam)
+
+        if bayesian:
+            self.bayesian_filter = BayesianFilter()
 
     def reset_vocab(self, new_vocab: List[str]):
         """Resets the vocabulary of Detic model allowing you to change detection on
@@ -148,6 +159,23 @@ class GroundedSAMPerception(PerceptionModule):
         detections.xyxy = detections.xyxy[nms_idx]
         detections.confidence = detections.confidence[nms_idx]
         detections.class_id = detections.class_id[nms_idx]
+
+        # Apply Bayesian filtering
+        if hasattr(self, "bayesian_filter") and len(detections.class_id) > 0:
+            class_idcs = detections.class_id
+            scores = detections.confidence
+
+            # Create a boolean mask based on the Bayesian filter
+            pass_bayesian_filter = np.array(
+                [
+                    self.bayesian_filter.observe(class_idx.item(), score.item())
+                    for class_idx, score in zip(class_idcs, scores)
+                ]
+            )
+
+            detections.xyxy = detections.xyxy[pass_bayesian_filter]
+            detections.class_id = detections.class_id[pass_bayesian_filter]
+            detections.confidence = detections.confidence[pass_bayesian_filter]
 
         # convert detections to masks
         detections.mask = self.segment(image=image, xyxy=detections.xyxy)

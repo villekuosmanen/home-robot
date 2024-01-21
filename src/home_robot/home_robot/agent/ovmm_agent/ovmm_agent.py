@@ -69,6 +69,7 @@ class OpenVocabManipAgent(ObjectNavAgent):
 
         if config.AGENT.VISION.bayesian:
             self.store_all_categories_in_map = True
+            # pass
 
         if config.GROUND_TRUTH_SEMANTICS == 1 and self.store_all_categories_in_map:
             # currently we get ground truth semantics of only the target object category and all scene receptacles from the simulator

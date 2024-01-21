@@ -62,6 +62,8 @@ class OvmmPerception:
                 custom_vocabulary=".",
                 sem_gpu_id=gpu_device_id,
                 verbose=verbose,
+                confidence_threshold=confidence_threshold,
+                bayesian=bayesian,
                 **module_kwargs,
             )
         else:
